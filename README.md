@@ -1,4 +1,4 @@
-## My Project
+## Craete a Chatbot using Amazon Lex to query pdf documents using Amazon Textract with key phrases and entities using Amazon Comprehend
 
 TODO: Fill this README out!
 
