@@ -1,0 +1,315 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform:
+- AWS::Serverless-2016-10-31
+Parameters:
+  BotName:
+    Type: String
+    Description: Prefix to add to Lex resource names
+    Default: MeaningfulConvo_Bot
+    MinLength: 3
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z\._]+$
+    ConstraintDescription: "Must conform with the permitted Lex Bot name pattern.\
+      \ \n"
+Resources:
+  DetectTextAsyncJob:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/create_texttract_detect_text_async_job.handler
+      Runtime: python3.7
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
+      Description: ''
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN:
+            Ref: TexttractAsyncJobSNSTopic
+          SNS_ROLE_ARN:
+            Fn::GetAtt:
+            - TextractSNSTopicRole
+            - Arn
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:GetObject
+          Resource: arn:aws:s3:::*
+        - Effect: Allow
+          Action:
+          - textract:*
+          Resource: '*'
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: SourceImageBucket
+            Events:
+            - s3:ObjectCreated:*
+  SourceImageBucket:
+    Type: AWS::S3::Bucket
+  TextractSNSTopicRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - textract.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: '*'
+            Resource: '*'
+  TexttractAsyncJobSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: TextractAsyncJobCompletionNotify
+  ExtractTextFromAsyncJobOutput:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/extract_text_from_textract_async_job_output.handler
+      Runtime: python3.7
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
+      Description: ''
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          OUT_PUT_S3_BUCKET:
+            Ref: OutputTextBucket
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - textract:*
+          Resource: '*'
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:PutObject
+          Resource: '*'
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: TexttractAsyncJobSNSTopic
+  LexLambaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/meaningful-conversations-lex-lambda.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
+      Description: ''
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - comprehend:*
+          Resource: '*'
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:*
+          Resource: '*'
+      - AmazonS3FullAccess
+      - ComprehendFullAccess
+  AlexaLambaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/meaningful-conversations-alexa-lambda.lambda_handler
+      Runtime: python3.8
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
+      Description: ''
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - comprehend:*
+          Resource: '*'
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:*
+          Resource: '*'
+      - AmazonS3FullAccess
+      - ComprehendFullAccess
+  OutputTextBucket:
+    Type: AWS::S3::Bucket
+  LambdaToCreateLexBot:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/lex-manager.handler
+      Runtime: python3.7
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
+      Description: ''
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        Statement:
+        - Effect: Allow
+          Action:
+          - lex:*
+          Resource: '*'
+  LexBot:
+    Type: Custom::LexBot
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - LambdaToCreateLexBot
+        - Arn
+      BotName:
+        Ref: BotName
+      ShouldDelete: 'true'
+  CodeBuildDeploy:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/aws-bigdata-blog/artifacts/aws-lex-web-ui/artifacts/templates/codebuild-deploy.yaml
+      Parameters:
+        CodeBuildName: lex-web-ui
+        SourceBucket: aws-bigdata-blog
+        SourceObject: artifacts/aws-lex-web-ui/artifacts/src.zip
+        CustomResourceCodeObject: artifacts/aws-lex-web-ui/artifacts/custom-resources.zip
+        CleanupBuckets: 'true'
+        BotName:
+          Ref: BotName
+        BotAlias: $LATEST
+        ParentOrigin: ''
+        WebAppConfBotInitialText: Say 'Hi' to get started.
+        WebAppConfBotInitialSpeech: Say 'Hi' to get started.
+        WebAppConfNegativeFeedback: Thumbs down
+        WebAppConfPositiveFeedback: Thumbs up
+        WebAppConfHelp: Help
+        WebAppConfToolbarTitle: WebAppConfToolbarTitle
+        ShouldEnableCognitoLogin: 'false'
+        ReInitSessionAttributesOnRestart: 'false'
+        EnableMarkdownSupport: 'true'
+        ShouldLoadIframeMinimized: 'false'
+        ShowResponseCardTitle: 'true'
+        CognitoIdentityPoolId:
+          Fn::If:
+          - NeedsCognito
+          - Fn::GetAtt:
+            - CognitoIdentityPool
+            - Outputs.CognitoIdentityPoolId
+          - ''
+        CognitoAppUserPoolClientId:
+          Fn::If:
+          - NeedsCognito
+          - Fn::GetAtt:
+            - CognitoIdentityPool
+            - Outputs.CognitoUserPoolClientId
+          - UserMustSupply
+        CognitoUserPoolId:
+          Fn::If:
+          - NeedsCognito
+          - Fn::GetAtt:
+            - CognitoIdentityPool
+            - Outputs.CognitoUserPoolId
+          - UserMustSupply
+  CognitoIdentityPool:
+    Type: AWS::CloudFormation::Stack
+    Condition: NeedsCognito
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/aws-bigdata-blog/artifacts/aws-lex-web-ui/artifacts/templates/cognito.yaml
+      Parameters:
+        CognitoIdentityPoolName: Lex Web UI
+        LexBotName:
+          Ref: BotName
+  CognitoIdentityPoolConfig:
+    Type: AWS::CloudFormation::Stack
+    Condition: NeedsCognito
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/aws-bigdata-blog/artifacts/aws-lex-web-ui/artifacts/templates/cognitouserpoolconfig.yaml
+      Parameters:
+        WebAppUrl:
+          Fn::If:
+          - NeedsParentOrigin
+          - Fn::GetAtt:
+            - CodeBuildDeploy
+            - Outputs.WebAppBase
+          - ''
+        WebAppPath: /parent.html
+        CodeBuildProjectName:
+          Fn::GetAtt:
+          - CodeBuildDeploy
+          - Outputs.CodeBuildProject
+        CognitoUserPool:
+          Fn::GetAtt:
+          - CognitoIdentityPool
+          - Outputs.CognitoUserPoolId
+        CognitoUserPoolClient:
+          Fn::GetAtt:
+          - CognitoIdentityPool
+          - Outputs.CognitoUserPoolClientId
+Conditions:
+  NeedsCognito:
+    Fn::Equals:
+    - ''
+    - ''
+  NeedsParentOrigin:
+    Fn::Equals:
+    - ''
+    - ''
+Outputs:
+  CognitoIdentityPoolId:
+    Condition: NeedsCognito
+    Description: Cognito Identity Pool Id
+    Value:
+      Fn::GetAtt:
+      - CognitoIdentityPool
+      - Outputs.CognitoIdentityPoolId
+  AssetsUploadBucket:
+    Value:
+      Fn::Sub: https://console.aws.amazon.com/s3/home?region=${AWS::Region}&bucket=${SourceImageBucket}
+    Description: Name of the S3 bucket where the pdfs or images are uploaded for text
+      extraction
+  ExtractedTextfilesBucket:
+    Value:
+      Fn::Sub: https://console.aws.amazon.com/s3/home?region=${AWS::Region}&bucket=${OutputTextBucket}
+    Description: Name of the S3 bucket where the files with extracted text are uploaded
+  LexLambaFunctionArn:
+    Description: 'Use this Lambda function for the Lex Intent FullfillmentActivity
+
+      '
+    Value:
+      Fn::GetAtt:
+      - LexLambaFunction
+      - Arn
+  LexUIWebAppUrl:
+    Description: 'URL of the stand-alone sample web application. This page will be
+      available after the pipeline/deployment completes.
+
+      '
+    Value:
+      Fn::GetAtt:
+      - CodeBuildDeploy
+      - Outputs.WebAppUrl
+  CodeBuildUrl:
+    Description: 'Monitor the pipeline URL to see when the application has been fully
+      built and deployed.
+
+      '
+    Value:
+      Fn::Sub: https://console.aws.amazon.com/codebuild/home?region=${AWS::Region}#/projects/${CodeBuildDeploy.Outputs.CodeBuildProject}/view
