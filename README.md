@@ -1,12 +1,18 @@
 ## Craete a Chatbot using Amazon Lex to query pdf documents using Amazon Textract with key phrases and entities using Amazon Comprehend
 
-TODO: Fill this README out!
+## This sample includes:
 
-Be sure to:
+* README.md - this file
 
-* Change the title in this README
-* Edit your repository description on GitHub
+* cfntempalte.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
+  by AWS CloudFormation to deploy your application.
 
+
+## Architecture Diagram
+
+Architecture below shows the core components. 
+
+[![button](launchstack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=lexbot&templateURL=https://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe.s3.amazonaws.com/template-export-lex.yml)
 ## License
 
 This project is licensed under the Apache-2.0 License.
