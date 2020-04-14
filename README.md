@@ -1,4 +1,4 @@
-## Craete a Chatbot using Amazon Lex to query pdf documents using Amazon Textract with key phrases and entities using Amazon Comprehend
+## Create a Chatbot using Amazon Lex to query pdf documents using Amazon Textract with key phrases and entities using Amazon Comprehend
 
 ## This sample includes:
 
