@@ -1,4 +1,4 @@
-## Craete a Chatbot using Amazon Lex to query pdf documents using Amazon Textract with key phrases and entities using Amazon Comprehend
+## Create Meaninful Dialogue based insights using Amazon Textract for text extraction from PDF documents, Amazon Comprehend to derive intelligence from text using Named Entities and Key phrases and use Amazon Lex chatbot to setup a dialogue interface to deliver content 
 
 ## This sample includes:
 
