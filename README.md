@@ -30,6 +30,7 @@ access control to your web and mobile apps quickly and easily. Amazon
 Cognito scales to millions of users and supports sign-in with social identity
 providers, such as Facebook, Google, and Amazon, and enterprise identity
 providers via SAML 2.0.
+* Amazon CodeStar - For setting up the Web UI for the Chatbot, Amazon CodeStar is used to setup a Continuous Delivery pipeline. AWS CodeStar enables you to quickly develop, build, and deploy applications on AWS. AWS CodeStar provides a unified user interface, enabling you to easily manage your software development activities in one place. With AWS CodeStar, you can set up your entire continuous delivery toolchain in minutes, allowing you to start releasing code faster.
 
 ## This sample includes:
 
@@ -63,7 +64,7 @@ to receive the extracted text and loads into an Amazon S3 bucket
 Lex reads the processed text and calls an Amazon Comprehend API to
 detect entities and key phrases.
 8. Amazon Comprehend is a Natural Language Processing Service that uses Machine Learning to find insights and relationships in text. The Lambda function uses boto3 APIs provided by Amazon Comprehend for entity and key phrases detection.
-9. The CloudFormation template deploys a Chatbot Web UI to implement a Web based interface for the Amazon Lex Chatbot. The web page is served as a Static Website from an Amazon S3 bucket. The Web UI uses Amazon Cognito for generating an access token for authentication. Please refer to this AWS github repo if you need more details on how to setup a Web UI for your Amazon Lex chatbots - https://github.com/aws-samples/aws-lex-web-ui. 
+9. The CloudFormation template deploys a Chatbot Web UI to implement a Web based interface for the Amazon Lex Chatbot. The web page is served as a Static Website from an Amazon S3 bucket. The Web UI uses Amazon Cognito for generating an access token for authentication and uses Amazon CodeStar to setup a delivery pipeline. Please refer to this AWS github repo if you need more details on how to setup a Web UI for your Amazon Lex chatbots - https://github.com/aws-samples/aws-lex-web-ui. 
 
 
 
