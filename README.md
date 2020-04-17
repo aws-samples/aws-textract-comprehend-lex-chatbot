@@ -38,6 +38,8 @@ providers via SAML 2.0.
 
 * cfntempalte.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
   by AWS CloudFormation to deploy your application.
+  
+* AWS Lambda functions writted in Python present in src/Lambda folder for implementing calls to Amazon Textract, Amazon       Comprehend and the fulfillment code for Amazon Lex  
 
 
 ## Reference Architecture
