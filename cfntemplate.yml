@@ -131,30 +131,6 @@ Resources:
           Resource: '*'
       - AmazonS3FullAccess
       - ComprehendFullAccess
-  AlexaLambaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: lambda/meaningful-conversations-alexa-lambda.lambda_handler
-      Runtime: python3.8
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
-      Description: ''
-      MemorySize: 512
-      Timeout: 30
-      Policies:
-      - Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Action:
-          - comprehend:*
-          Resource: '*'
-      - Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Action:
-          - s3:*
-          Resource: '*'
-      - AmazonS3FullAccess
-      - ComprehendFullAccess
   OutputTextBucket:
     Type: AWS::S3::Bucket
   LambdaToCreateLexBot:
