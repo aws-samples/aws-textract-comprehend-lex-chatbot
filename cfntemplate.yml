@@ -15,7 +15,7 @@ Resources:
   DetectTextAsyncJob:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda/create_texttract_detect_text_async_job.handler
+      Handler: lambda/create_textract_detect_text_async_job.handler
       Runtime: python3.7
       CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/d330767045b934ee6c8bee3dfb2677ba
       Description: ''
