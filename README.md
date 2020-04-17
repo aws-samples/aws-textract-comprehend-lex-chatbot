@@ -25,14 +25,6 @@ management with fine-tuned access controls.
 data, shifts in system state, or user actions. Because S3 can directly trigger
 a Lambda function, you can build a variety of real-time serverless data-
 processing systems.
-* Amazon CloudFront - Amazon CloudFront is a fast content delivery
-network (CDN) service that securely delivers data, videos, applications, and
-APIs to customers globally with low latency, high transfer speeds, all within
-a developer-friendly environment
-* Amazon Route53 - Amazon Route 53 is a highly available and scalable
-cloud Domain Name System (DNS) web service. It is designed to give
-developers and businesses an extremely reliable and cost effective way to
-route end users to Internet applications
 * Amazon Cognito - Amazon Cognito lets you add user sign-up, sign-in, and
 access control to your web and mobile apps quickly and easily. Amazon
 Cognito scales to millions of users and supports sign-in with social identity
@@ -47,7 +39,7 @@ providers via SAML 2.0.
   by AWS CloudFormation to deploy your application.
 
 
-## Architecture Diagram
+## Reference Architecture
 
 Architecture below shows the core components. 
 
@@ -70,11 +62,9 @@ to receive the extracted text and loads into an Amazon S3 bucket
 7. A third AWS Lambda function that implements the intent for Amazon
 Lex reads the processed text and calls an Amazon Comprehend API to
 detect entities and key phrases.
-8. User interacts with a Chatbot Web UI, authenticated by Amazon
-Cognito, delivered by Amazon CloudFront CDN, via Amazon Route53
-integrated with Amazon Lex chatbot which in turn triggers the call to
-the AWS Lambda function mentioned in Step 7 to create a
-conversational experience for the user
+8. The CloudFormation template deploys a Chatbot Web UI to implement a Web based interface for the Amazon Lex Chatbot. The web page is served as a Static Website from an Amazon S3 bucket. The Web UI uses Amazon Cognito for generating an access token for authentication. Please refer to this AWS github repo if you need more details on how to setup a Web UI for your Amazon Lex chatbots - https://github.com/aws-samples/aws-lex-web-ui. 
+
+
 
 ## Deploy 1 click
 [![button](launchstack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=lexbot&templateURL=https://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe.s3.amazonaws.com/template-export-lex.yml)
