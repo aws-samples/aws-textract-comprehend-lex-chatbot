@@ -127,6 +127,7 @@ def get_entities(intent_request):
     global compindex
     global mainindex
     retentity = ""
+    selected_entities = ""
     session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
     input_bucket = s3.Bucket('awscodestar-meaningfulconve-infr-outputtextbucket-1efgr6xdzgdur')
     for file in input_bucket.objects.all():
@@ -137,9 +138,9 @@ def get_entities(intent_request):
         LanguageCode="en"
         )
         selected_entity_types = ["ORGANIZATION", "OTHER", "TITLE", "LOCATION", "COMMERCIAL_ITEM"]
-        selected_entities = str([x['Text'] for x in detected_entities['Entities']
-                            if x['Score'] > 0.9 and
-                            x['Type'] in selected_entity_types])
+        for x in detected_entities['Entities']:
+            if x['Score'] > 0.9 and x['Type'] in selected_entity_types:
+                selected_entities = selected_entities + " " + x['Type'] + ":" + x['Text']
         detected_key_phrases = comprehend.detect_key_phrases(
             Text=text_file_contents,
             LanguageCode="en"
@@ -151,9 +152,8 @@ def get_entities(intent_request):
         compindex['phrases'] = selected_phrases
         mainindex[file.key] = compindex
         compindex = dict()
-        retentity = retentity + " " + str(selected_entities)
     print("Main Index is: " + str(mainindex))
-    print('about to return selected entities: ' + retentity)
+    print('about to return selected entities: ' + str(selected_entities))
     return elicit_slot(
         session_attributes,
         'GetPhrases',
@@ -161,7 +161,7 @@ def get_entities(intent_request):
         'entityrequested',
         {
             'contentType': 'PlainText',
-            'content': 'Welcome to Meaningful Conversations, here are the list of Entities available, select one to proceed: ' + str(retentity)
+            'content': 'Welcome to Meaningful Conversations, here are the list of Entities available, select one to proceed: ' + str(selected_entities)
         }
     )
 
