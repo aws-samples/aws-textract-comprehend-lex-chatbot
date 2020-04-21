@@ -46,7 +46,7 @@ providers via SAML 2.0.
 
 Architecture below shows the core components. 
 
-![](arch.png)
+![](arch_latest.png)
 
 ## Solution Flow
 
