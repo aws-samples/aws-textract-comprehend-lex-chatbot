@@ -1,4 +1,4 @@
-## Derive Dialogue based Insights from text in Images (JPEG/PNG) or PDF files using Amazon Textract, Amazon Comprehend and an Amazon Lex Chatbot 
+## Deriving Dialogue based Insights from text in Images (JPEG/PNG) or PDF files using Amazon Textract, Amazon Comprehend and an Amazon Lex Chatbot 
 
 Extracting and analyzing text from images or PDFs is a classic machine learning
 (ML) and natural language processing (NLP) problem. When extracting the
@@ -42,13 +42,13 @@ providers via SAML 2.0.
 * AWS Lambda functions writted in Python present in src/Lambda folder for implementing calls to Amazon Textract, Amazon       Comprehend and the fulfillment code for Amazon Lex  
 
 
-## Reference Architecture
+## Solution Overview 
 
-Architecture below shows the core components. 
+The following diagram illustrates the architecture of the solution
 
 ![](arch_latest.png)
 
-## Solution Flow
+The architecture contains the following steps:
 
 1. Users can use AWS console or the CLI to upload their PDF document to
 a S3 bucket
