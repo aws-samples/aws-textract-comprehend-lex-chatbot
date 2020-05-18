@@ -46,7 +46,7 @@ providers via SAML 2.0.
 
 The following diagram illustrates the architecture of the solution
 
-![](arch_latest.png)
+![](arch.png)
 
 The architecture contains the following steps:
 
