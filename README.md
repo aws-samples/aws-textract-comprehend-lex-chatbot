@@ -1,4 +1,4 @@
-## Deriving Dialogue based Insights from text in Images (JPEG/PNG) or PDF files using Amazon Textract, Amazon Comprehend and an Amazon Lex Chatbot 
+## Deriving Conversational Insights from text in Images (JPEG/PNG) or PDF files using Amazon Textract, Amazon Comprehend and an Amazon Lex Chatbot 
 
 Extracting and analyzing text from images or PDFs is a classic machine learning
 (ML) and natural language processing (NLP) problem. When extracting the
