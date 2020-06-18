@@ -1,42 +1,28 @@
-## Deriving Dialogue based Insights from text in Images (JPEG/PNG) or PDF files using Amazon Textract, Amazon Comprehend and an Amazon Lex Chatbot 
+## Deriving conversational insights from invoices with Amazon Textract, Amazon Comprehend, and Amazon Lex  
 
-Extracting and analyzing text from images or PDFs is a classic machine learning
-(ML) and natural language processing (NLP) problem. When extracting the
-content from a document, you want to maintain the overall context and store the
-information in a readable and searchable format. With AWS’s AI services Amazon
-Textract and Amazon Comprehend, it is now easier than ever to setup a
-document processing pipeline from ingestion to consumption
+This sample is based on the blog post (Link to be specified). It shows you how to use AWS AI services to automate text data processing and insight discovery. With AWS AI services such as Amazon Textract, Amazon Comprehend and Amazon Lex, you can set up an automated serverless solution to address this requirement. We will walk you through below steps:
+1) Extract text from receipts or invoices in pdf or images with Amazon Textract.
+2) Derive insights with  Amazon Comprehend.
+3) Interact with these insights in natural language using Amazon Lex.
 
-This post walks you through setting up a conversational chatbot using Amazon
-Lex that enables interaction with insights derived from a text corpus in a PDF
-document. Amazon Textract enables intelligent text extraction and Amazon
-Comprehend for identifying Named Entities and Key Phrases.
 
 ## Services Used
 This solution uses AI services, serverless technologies and managed services to
 implement a scalable and cost-effective architecture.
-* Amazon Textract – Uses ML to extract text and data from scanned
-documents in PDF, JPEG or PNG formats.
-* Amazon Comprehend – Uses ML to find insights and relationships in text.
+* AWS CodeStar – Sets up the web UI for the chatbot and continuous delivery pipeline. 
+* Amazon Cognito – Lets you add user signup, signin, and access control to your web and mobile apps quickly and easily. 
+* AWS Lambda – Executes code in response to triggers such as changes in data, shifts in system state, or user actions. Because Amazon S3 can directly trigger a Lambda function, you can build a variety of real-time serverless data-processing systems. 
 * Amazon Lex – Provides an interface to create conversational chatbots.
-* Amazon S3 – Object store for your documents and allows for central
-management with fine-tuned access controls.
-* AWS Lambda – Executes code in response to triggers such as changes in
-data, shifts in system state, or user actions. Because S3 can directly trigger
-a Lambda function, you can build a variety of real-time serverless data-
-processing systems.
-* Amazon Cognito - Amazon Cognito lets you add user sign-up, sign-in, and
-access control to your web and mobile apps quickly and easily. Amazon
-Cognito scales to millions of users and supports sign-in with social identity
-providers, such as Facebook, Google, and Amazon, and enterprise identity
-providers via SAML 2.0.
-* Amazon CodeStar - For setting up the Web UI for the Chatbot, Amazon CodeStar is used to setup a Continuous Delivery pipeline. AWS CodeStar enables you to quickly develop, build, and deploy applications on AWS. AWS CodeStar provides a unified user interface, enabling you to easily manage your software development activities in one place. With AWS CodeStar, you can set up your entire continuous delivery toolchain in minutes, allowing you to start releasing code faster.
+* Amazon Comprehend – NLP service that uses machine learning to find insights and relationships in text.
+* Amazon Textract– Uses ML to extract text and data from scanned documents in PDF, JPEG, or PNG formats. 
+* Amazon Simple Storage Service (Amazon S3) – Serves as an object store for your documents and allows for central management with fine-tuned access controls.
+
 
 ## This sample includes:
 
 * README.md - this file
 
-* cfntempalte.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
+* cfntemplate.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
   by AWS CloudFormation to deploy your application.
   
 * AWS Lambda functions writted in Python present in src/Lambda folder for implementing calls to Amazon Textract, Amazon       Comprehend and the fulfillment code for Amazon Lex  
@@ -50,23 +36,19 @@ The following diagram illustrates the architecture of the solution
 
 The architecture contains the following steps:
 
-1. Users can use AWS console or the CLI to upload their PDF document to
-a S3 bucket
-2. Amazon S3 upload triggers a AWS lambda function
-3. AWS Lambda invokes an Amazon Textract API, which sets up an
-Asynchronous job to detect text from the PDF document uploaded into
-Amazon S3 in Step 1
-4. Amazon Textract notifies Amazon SNS when text processing is finished.
-5. A second AWS Lambda function is attached to the SNS topic that is
-triggered as soon a message is received from Amazon Textract
-signaling the completion of the job processing.
-6. This AWS Lambda function then calls a different Amazon Textract API
-to receive the extracted text and loads into an Amazon S3 bucket
-7. A third AWS Lambda function that implements the intent for Amazon
-Lex reads the processed text and calls an Amazon Comprehend API to
-detect entities and key phrases.
-8. Amazon Comprehend is a Natural Language Processing Service that uses Machine Learning to find insights and relationships in text. The Lambda function uses boto3 APIs provided by Amazon Comprehend for entity and key phrases detection.
-9. The CloudFormation template deploys a Chatbot Web UI to implement a Web based interface for the Amazon Lex Chatbot. The web page is served as a Static Website from an Amazon S3 bucket. The Web UI uses Amazon Cognito for generating an access token for authentication and uses Amazon CodeStar to setup a delivery pipeline. Please refer to this AWS github repo if you need more details on how to setup a Web UI for your Amazon Lex chatbots - https://github.com/aws-samples/aws-lex-web-ui. 
+1.	The backend user or administrator uses the AWS Management Console or AWS Command Line Interface (AWS CLI) to upload the PDF documents or images to an S3 bucket. 
+2.	The Amazon S3 upload triggers a AWS Lambda function.
+3.	The Lambda function invokes an Amazon Textract StartDocumentTextDetection async API, which sets up an asynchronous job to detect text from the PDF you uploaded.
+4.	Amazon Textract notifies Amazon Simple Notification Service (Amazon SNS) when text processing is complete.
+5.	A second Lambda function gets the notification from SNS topic when the job is completed  to detect text.
+6.	Once the lambda is notified of job completion from Amazon SNS, it calls a  Amazon Textract GetDocumentTextDetection  async API to receive the result from asynchronous operation and loads the results into an S3 bucket.
+7.	A Lambda function is used for fulfillment of the Amazon Lex intents. For a more detailed sequence of interactions please refer to the Building your chatbot step in “Deploying the Architecture with Cloudformation” section.
+8.	Amazon Comprehend uses ML to find insights and relationships in text. The lambda function uses boto3 APIs that Amazon Comprehend provides for entity and key phrases detection.
+  a.	In response to the Bot’s welcome message, the user types “Show me the invoice summary”, this invokes the GetInvoiceSummary Lex intent and the Lambda function uses the Amazon Comprehend DetectEntities API for fulfillment
+  b.	When the user types “Get me the invoice details”, this invokes the GetInvoiceDetails intent, Amazon Lex prompts the user to enter Invoice Number, and the Lambda function uses the Amazon Comprehend DetectEntities API to return the Invoice Details message
+  c.	When the user types “Can you show me the invoice notes for <invoice number>”, this invokes the GetInvoiceNotes intent, and the Lambda function uses the Amazon Comprehend DetectKeyPhrases API to return comments associated with the invoice
+
+9.	You deploy the Lexbot Web UI in your AWS Cloudformation template by using an existing CloudFormation stack as a nested stack. To download the stack, see Deploy a Web UI for Your Chatbot. This nested stack deploys a Lex Web UI, the webpage is served as a static website from an S3 bucket. The web UI uses Amazon Cognito to generate an access token for authentication and uses AWS CodeStar to set up a delivery pipeline.The end-users interact this chatbot web UI. Please refer to this AWS github repo if you need more details on how to setup a Web UI for your Amazon Lex chatbots - https://github.com/aws-samples/aws-lex-web-ui. 
 
 
 
