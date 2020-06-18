@@ -1,6 +1,6 @@
 ## Deriving conversational insights from invoices with Amazon Textract, Amazon Comprehend, and Amazon Lex  
 
-This sample is based on the blog post <Link to be created>. It shows you how to use AWS AI services to automate text data processing and insight discovery. With AWS AI services such as Amazon Textract, Amazon Comprehend and Amazon Lex, you can set up an automated serverless solution to address this requirement. We will walk you through below steps:
+This sample is based on the blog post (Link to be specified). It shows you how to use AWS AI services to automate text data processing and insight discovery. With AWS AI services such as Amazon Textract, Amazon Comprehend and Amazon Lex, you can set up an automated serverless solution to address this requirement. We will walk you through below steps:
 1) Extract text from receipts or invoices in pdf or images with Amazon Textract.
 2) Derive insights with  Amazon Comprehend.
 3) Interact with these insights in natural language using Amazon Lex.
@@ -22,7 +22,7 @@ implement a scalable and cost-effective architecture.
 
 * README.md - this file
 
-* cfntempalte.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
+* cfntemplate.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
   by AWS CloudFormation to deploy your application.
   
 * AWS Lambda functions writted in Python present in src/Lambda folder for implementing calls to Amazon Textract, Amazon       Comprehend and the fulfillment code for Amazon Lex  
