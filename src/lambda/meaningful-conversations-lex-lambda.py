@@ -1,3 +1,4 @@
+
 ##########################################################################
 # Copyright 2017-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
@@ -19,8 +20,10 @@ import logging
 import boto3
 import tarfile
 import csv
+import re
 from io import StringIO
 from io import BytesIO
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,8 +33,10 @@ s3 = boto3.resource('s3')
 
 comprehend = boto3.client('comprehend')
 
-compindex = dict()
-mainindex = dict()
+bucket=os.environ['S3_BUCKET']
+input_bucket = s3.Bucket(bucket)
+
+
 # --- Helpers that build all of the responses ---
 
 
@@ -121,123 +126,148 @@ def build_validation_result(isvalid, violated_slot, message_content):
 
 
 """ --- Functions that control the bot's behavior --- """
-
-
-def get_entities(intent_request):
-    global compindex
-    global mainindex
-    retentity = ""
-    selected_entities = ""
+def get_summary(intent_request):
+    # Declare variables and get handle to the S3 bucket containing the Textract output
     session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
-    input_bucket = s3.Bucket('awscodestar-meaningfulconve-infr-outputtextbucket-1efgr6xdzgdur')
+    
+    i = 0
+    qty = 0
+    
     for file in input_bucket.objects.all():
-        input_bucket_text_file = s3.Object('awscodestar-meaningfulconve-infr-outputtextbucket-1efgr6xdzgdur', file.key)
+        i += 1
+        selected_phrases = ""
+        input_bucket_text_file = s3.Object(bucket, file.key)
         text_file_contents = str(input_bucket_text_file.get()['Body'].read().decode('utf-8'))
+        
+        #Comprehend Entity Detection
         detected_entities = comprehend.detect_entities(
         Text=text_file_contents,
         LanguageCode="en"
         )
-        selected_entity_types = ["ORGANIZATION", "OTHER", "TITLE", "LOCATION", "COMMERCIAL_ITEM"]
+        print(detected_entities)
+        
+        selected_entity_types = ["ORGANIZATION", "OTHER", "DATE", "QUANTITY", "LOCATION"]
+        # Let's get the billing summary across invoices
         for x in detected_entities['Entities']:
-            if x['Score'] > 0.9 and x['Type'] in selected_entity_types:
-                selected_entities = selected_entities + " " + x['Type'] + ":" + x['Text']
-        detected_key_phrases = comprehend.detect_key_phrases(
-            Text=text_file_contents,
-            LanguageCode="en"
-            )
-        selected_phrases = str([x['Text'] for x in detected_key_phrases['KeyPhrases']
-                            if x['Score'] > 0.9])    
-        compindex['file_contents'] = text_file_contents
-        compindex['entities'] = selected_entities
-        compindex['phrases'] = selected_phrases
-        mainindex[file.key] = compindex
-        compindex = dict()
-    print("Main Index is: " + str(mainindex))
-    print('about to return selected entities: ' + str(selected_entities))
-    return elicit_slot(
+            if x['Type'] == "OTHER" and x['EndOffset'] < 40:
+                nr = x['Text']
+            if x['Type'] == "QUANTITY" and x['EndOffset'] > 337 and x['EndOffset'] <= 350:
+                qty = round((qty + float(x['Text'])), 2)
+    return close(
         session_attributes,
-        'GetPhrases',
-        intent_request['currentIntent']['slots'],
-        'entityrequested',
+        'Fulfilled',
         {
             'contentType': 'PlainText',
-            'content': 'Welcome to Meaningful Conversations, here are the list of Entities available, select one to proceed: ' + str(selected_entities)
+            'content': 'I reviewed your input documents and found {} invoices with invoice numbers {} totaling ${}. I can get you invoice details or invoice notes. Simply type your request'.format(i, nr, str(qty))
         }
     )
-
-def get_phrases(intent_request):
-    global mainindex
-    print("Inside Get Phrases")
-    session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
-    slots = intent_request['currentIntent']['slots']
-    entity = slots['entityrequested']
-    print("Entity input for get phrases is: " + str(entity))
-    session_attributes['entity'] = entity
-    print("Updated Session Attributes are: " + str(session_attributes))
-    found = 0
-    for i in mainindex:
-        if entity.upper() in str(mainindex[i]['entities']).upper():
-            phrases = mainindex[i]['phrases']
-            found = 1
-
-    if found == 1:
-        return elicit_slot(
-        session_attributes,
-        'GetText',
-        intent_request['currentIntent']['slots'],
-        'textrequested',
-        {
-            'contentType': 'PlainText',
-            'content': 'Here are some contextual references for your entity. Type more-text to see the full text content: ' + str(phrases)
-        }
-    )    
-    else:
-        return elicit_slot(
-        session_attributes,
-        'GetPhrases',
-        intent_request['currentIntent']['slots'],
-        'entityrequested',
-        {
-            'contentType': 'PlainText',
-            'content': 'I was unable to find phrases matching your selection. Please try again'
-        }
-    )    
-       
     
 
-
-def get_text(intent_request):
-    global mainindex
+def get_details(intent_request):
+    bill = ""
+    billsum = []
+    result = ""
+    y = True
     session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
-    slots = intent_request['currentIntent']['slots']
-    textmatch = slots['textrequested']
-    if textmatch == "more-text":
-        for i in mainindex:
-            if session_attributes['entity'].upper() in str(mainindex[i]['entities']).upper():
-                textcorpus = mainindex[i]['file_contents']
-        return close(
-            session_attributes,
-            "Fulfilled",
-            {
-                'contentType': 'PlainText',
-                'content': 'Here is the text corpus for your selection: ' + str(textcorpus)
-            }
-        )        
-                
-    else:
-        return close(
-            session_attributes,
-            "Fulfilled",
-            {
-                'contentType': 'PlainText',
-                'content': 'OK, since you did not input the keyword more-text, I am ending our chat session. Goodbye for now'
-            }
-        )            
+    inr = intent_request['currentIntent']['slots']['invoicenr']
     
+    r = 0
+    i = 0
+    for file in input_bucket.objects.all():
+        i += 1
+        selected_phrases = ""
+        input_bucket_text_file = s3.Object(bucket, file.key)
+        text_file_contents = str(input_bucket_text_file.get()['Body'].read().decode('utf-8'))
+        #Comprehend Entity Detection
+        detected_entities = comprehend.detect_entities(
+        Text=text_file_contents,
+        LanguageCode="en"
+        )
         
+        
+        print(detected_entities)
+        selected_entity_types = ["DATE", "QUANTITY"]
+        for x in detected_entities['Entities']:
+            if x['Type'] in "OTHER":
+                detnr = x['Text'] 
+        if detnr == inr:
+            htmlstring = "Invoice Details for " + detnr + ": "
+            for x in detected_entities['Entities']:
+                if x['Type'] in selected_entity_types and x['EndOffset'] > 40 and x['EndOffset'] <= 337:
+                    r += 1
+                    if r == 1:
+                        htmlstring += "On " + x['Text'] + " "
+                    elif r == 2:
+                        htmlstring += "for the item " + x['Text'] + " "
+                    else:
+                        htmlstring += " there is a charge of " + str(x['Text'].split()[0]) + ". "
+                        r = 0
+                    print("HTMLString is: " + htmlstring)
+                    
+            result = htmlstring + " You can request me for invoice notes or simply close this chat."
+        else:
+            result = 'Sorry I could not find a match for that Invoice Number. Please request for invoice details with a valid Invoice Number.'
+    return close(
+        session_attributes,
+        'Fulfilled',
+        {
+            'contentType': 'PlainText',
+            'content': result
+        }
+    )
+        
+            
+    
 
-
-
+def get_notes(intent_request):
+    
+    session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+    inr = intent_request['currentIntent']['slots']['invoicenr']
+    
+    i = 0
+    notes = ""
+    phrases = []
+    
+    for file in input_bucket.objects.all():
+        i += 1
+        selected_phrases = ""
+        input_bucket_text_file = s3.Object(bucket, file.key)
+        text_file_contents = str(input_bucket_text_file.get()['Body'].read().decode('utf-8'))
+        
+        detected_entities = comprehend.detect_entities(
+        Text=text_file_contents,
+        LanguageCode="en"
+        )
+        #print(detected_entities)
+        #selected_entity_types = ["ORGANIZATION", "OTHER", "DATE", "QUANTITY", "LOCATION"]
+        for x in detected_entities['Entities']:
+            if x['Type'] in "OTHER":
+                detnr = x['Text'] 
+        if detnr == inr:
+        #Comprehend Key Phrases Detection
+            detected_key_phrases = comprehend.detect_key_phrases(
+                Text=text_file_contents,
+                LanguageCode="en"
+                )
+            print(detected_key_phrases)
+            for y in detected_key_phrases['KeyPhrases']:
+                if y['EndOffset'] > 185 and y['EndOffset'] <= 337:
+                    selected_phrases = " " + y['Text'] + selected_phrases + " " 
+        
+            #phrases.append(selected_phrases)
+            print("Selected Phrases are: " + selected_phrases)   
+            #notes = notes + ".  Notes for Invoice " + str(i) + " are: " + str(phrases[i - 1])
+            result = "Invoice Notes for " + detnr + ": " + selected_phrases
+        else:
+            result = 'Sorry I could not find a match for that Invoice Number. Please request for invoice notes with a valid Invoice Number'
+    return close(
+        session_attributes,
+        'Fulfilled',
+        {
+            'contentType': 'PlainText',
+            'content': result + '. Feel free to try the options again or you can simply close this chat'
+        }
+    )
 
 def dispatch(intent_request):
     """
@@ -249,12 +279,12 @@ def dispatch(intent_request):
     intent_name = intent_request['currentIntent']['name']
 
     # Dispatch to your bot's intent handlers
-    if intent_name == 'ListEntities':
-        return get_entities(intent_request)
-    elif intent_name == 'GetPhrases':
-        return get_phrases(intent_request)
-    elif intent_name == 'GetText':
-        return get_text(intent_request)
+    if intent_name == 'GetInvoiceSummary':
+        return get_summary(intent_request)
+    elif intent_name == 'GetInvoiceDetails':
+        return get_details(intent_request)
+    elif intent_name == 'GetInvoiceNotes':
+        return get_notes(intent_request)
 
     raise Exception('Intent with name ' + intent_name + ' not supported')
 

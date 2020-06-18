@@ -35,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.setLevel(DEFAULT_LOGGING_LEVEL)
 
-BOT_DEFINITION_FILENAME = 'lambda/MeaningfulConvo_Bot.zip'
+BOT_DEFINITION_FILENAME = 'lambda/InvoiceBot.zip'
 BOT_EXPORT_FILENAME = 'bot-definition-export.json'
 
 def create_bot():

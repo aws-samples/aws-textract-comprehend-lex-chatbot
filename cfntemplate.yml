@@ -5,7 +5,7 @@ Parameters:
   BotName:
     Type: String
     Description: Prefix to add to Lex resource names
-    Default: MeaningfulConvo_Bot
+    Default: InvoiceBot
     MinLength: 3
     MaxLength: 32
     AllowedPattern: ^[a-zA-Z\._]+$
@@ -17,7 +17,7 @@ Resources:
     Properties:
       Handler: lambda/create_texttract_detect_text_async_job.handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/f66b6b305d250d67153791a99e48aac5
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -108,7 +108,7 @@ Resources:
     Properties:
       Handler: lambda/extract_text_from_textract_async_job_output.handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/f66b6b305d250d67153791a99e48aac5
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -163,7 +163,7 @@ Resources:
     Properties:
       Handler: lambda/meaningful-conversations-lex-lambda.lambda_handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/f66b6b305d250d67153791a99e48aac5
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -220,7 +220,7 @@ Resources:
     Properties:
       Handler: lambda/lex-manager.handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/f66b6b305d250d67153791a99e48aac5
+      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -250,12 +250,14 @@ Resources:
           Ref: BotName
         BotAlias: $LATEST
         ParentOrigin: ''
-        WebAppConfBotInitialText: Say 'Hi' to get started.
-        WebAppConfBotInitialSpeech: Say 'Hi' to get started.
+        WebAppConfBotInitialText: Welcome to InvoiceBot. You can ask me to provide
+          your invoice summary, or details of your invoices, or your invoice notes
+        WebAppConfBotInitialSpeech: Welcome to InvoiceBot. You can ask me to provide
+          your invoice summary, or details of your invoices, or your invoice notes
         WebAppConfNegativeFeedback: Thumbs down
         WebAppConfPositiveFeedback: Thumbs up
         WebAppConfHelp: Help
-        WebAppConfToolbarTitle: Meaningful Conversations
+        WebAppConfToolbarTitle: InvoiceBot
         ShouldEnableCognitoLogin: 'false'
         ReInitSessionAttributesOnRestart: 'false'
         EnableMarkdownSupport: 'true'
