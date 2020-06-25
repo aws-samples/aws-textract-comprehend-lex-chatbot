@@ -53,7 +53,7 @@ The architecture contains the following steps:
 
 
 ## Deploy 1 click
-[![button](launchstack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=lexbot&templateURL=https://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe.s3.amazonaws.com/template-export.yml)
+[![button](launchstack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=Invoicebot&templateURL=https://aws-ml-blog.s3.amazonaws.com/artifacts/textract-comprehend-lex/template-export.yml)
 ## License
 
 This project is licensed under the Apache-2.0 License.
