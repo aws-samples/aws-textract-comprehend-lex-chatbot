@@ -284,6 +284,7 @@ Resources:
             - CognitoIdentityPool
             - Outputs.CognitoUserPoolId
           - UserMustSupply
+        Timestamp: 600
   CognitoIdentityPool:
     Type: AWS::CloudFormation::Stack
     Condition: NeedsCognito
