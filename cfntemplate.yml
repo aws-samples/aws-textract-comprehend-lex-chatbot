@@ -103,6 +103,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: TextractAsyncJobCompletionNotify
+      KmsMasterKeyId: alias/aws/sns
   ExtractTextFromAsyncJobOutput:
     Type: AWS::Serverless::Function
     Properties:
