@@ -129,29 +129,29 @@ def build_validation_result(isvalid, violated_slot, message_content):
 def get_summary(intent_request):
     # Declare variables and get handle to the S3 bucket containing the Textract output
     session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
-    
+
     i = 0
     qty = 0
-    
+
     for file in input_bucket.objects.all():
         i += 1
         selected_phrases = ""
         input_bucket_text_file = s3.Object(bucket, file.key)
         text_file_contents = str(input_bucket_text_file.get()['Body'].read().decode('utf-8'))
-        
+
         #Comprehend Entity Detection
         detected_entities = comprehend.detect_entities(
         Text=text_file_contents,
         LanguageCode="en"
         )
         print(detected_entities)
-        
+
         selected_entity_types = ["ORGANIZATION", "OTHER", "DATE", "QUANTITY", "LOCATION"]
         # Let's get the billing summary across invoices
         for x in detected_entities['Entities']:
             if x['Type'] == "OTHER" and x['EndOffset'] < 40:
                 nr = x['Text']
-            if x['Type'] == "QUANTITY" and x['EndOffset'] > 337 and x['EndOffset'] <= 350:
+            if x['Type'] == "QUANTITY" and x['EndOffset'] > 350:
                 qty = round((qty + float(x['Text'])), 2)
     return close(
         session_attributes,
@@ -161,7 +161,7 @@ def get_summary(intent_request):
             'content': 'I reviewed your input documents and found {} invoices with invoice numbers {} totaling ${}. I can get you invoice details or invoice notes. Simply type your request'.format(i, nr, str(qty))
         }
     )
-    
+
 
 def get_details(intent_request):
     bill = ""
@@ -170,7 +170,7 @@ def get_details(intent_request):
     y = True
     session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
     inr = intent_request['currentIntent']['slots']['invoicenr']
-    
+
     r = 0
     i = 0
     for file in input_bucket.objects.all():
@@ -183,13 +183,13 @@ def get_details(intent_request):
         Text=text_file_contents,
         LanguageCode="en"
         )
-        
-        
+
+
         print(detected_entities)
         selected_entity_types = ["DATE", "QUANTITY"]
         for x in detected_entities['Entities']:
             if x['Type'] in "OTHER":
-                detnr = x['Text'] 
+                detnr = x['Text']
         if detnr == inr:
             htmlstring = "Invoice Details for " + detnr + ": "
             for x in detected_entities['Entities']:
@@ -203,7 +203,7 @@ def get_details(intent_request):
                         htmlstring += " there is a charge of " + str(x['Text'].split()[0]) + ". "
                         r = 0
                     print("HTMLString is: " + htmlstring)
-                    
+
             result = htmlstring + " You can request me for invoice notes or simply close this chat."
         else:
             result = 'Sorry I could not find a match for that Invoice Number. Please request for invoice details with a valid Invoice Number.'
@@ -215,25 +215,25 @@ def get_details(intent_request):
             'content': result
         }
     )
-        
-            
-    
+
+
+
 
 def get_notes(intent_request):
-    
+
     session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
     inr = intent_request['currentIntent']['slots']['invoicenr']
-    
+
     i = 0
     notes = ""
     phrases = []
-    
+
     for file in input_bucket.objects.all():
         i += 1
         selected_phrases = ""
         input_bucket_text_file = s3.Object(bucket, file.key)
         text_file_contents = str(input_bucket_text_file.get()['Body'].read().decode('utf-8'))
-        
+
         detected_entities = comprehend.detect_entities(
         Text=text_file_contents,
         LanguageCode="en"
@@ -242,7 +242,7 @@ def get_notes(intent_request):
         #selected_entity_types = ["ORGANIZATION", "OTHER", "DATE", "QUANTITY", "LOCATION"]
         for x in detected_entities['Entities']:
             if x['Type'] in "OTHER":
-                detnr = x['Text'] 
+                detnr = x['Text']
         if detnr == inr:
         #Comprehend Key Phrases Detection
             detected_key_phrases = comprehend.detect_key_phrases(
@@ -252,10 +252,10 @@ def get_notes(intent_request):
             print(detected_key_phrases)
             for y in detected_key_phrases['KeyPhrases']:
                 if y['EndOffset'] > 185 and y['EndOffset'] <= 337:
-                    selected_phrases = " " + y['Text'] + selected_phrases + " " 
-        
+                    selected_phrases = " " + y['Text'] + selected_phrases + " "
+
             #phrases.append(selected_phrases)
-            print("Selected Phrases are: " + selected_phrases)   
+            print("Selected Phrases are: " + selected_phrases)
             #notes = notes + ".  Notes for Invoice " + str(i) + " are: " + str(phrases[i - 1])
             result = "Invoice Notes for " + detnr + ": " + selected_phrases
         else:
