@@ -17,7 +17,7 @@ Resources:
     Properties:
       Handler: lambda/create_texttract_detect_text_async_job.handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
+      CodeUri: s3://aws-bigdata-blog/artifacts/aws-textract-comprehend-lex-chatbot/lambda.zip
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -109,7 +109,7 @@ Resources:
     Properties:
       Handler: lambda/extract_text_from_textract_async_job_output.handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
+      CodeUri: s3://aws-bigdata-blog/artifacts/aws-textract-comprehend-lex-chatbot/lambda.zip
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -164,7 +164,7 @@ Resources:
     Properties:
       Handler: lambda/meaningful-conversations-lex-lambda.lambda_handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
+      CodeUri: s3://aws-bigdata-blog/artifacts/aws-textract-comprehend-lex-chatbot/lambda.zip
       Description: ''
       MemorySize: 512
       Timeout: 30
@@ -219,14 +219,122 @@ Resources:
   LambdaToCreateLexBot:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: lambda/lex-manager.handler
+      Handler: index.handler
       Runtime: python3.7
-      CodeUri: s3://aws-codestar-us-east-1-820570838999-meaningfulconve-pipe/c4f60558e37b987d55576305b05d010a
+      InlineCode: |
+        import logging
+        import json
+        import boto3
+        import time
+        import io
+
+        lexclient = boto3.client('lex-models')
+        s3 = boto3.resource('s3')
+        DEFAULT_LOGGING_LEVEL = logging.INFO
+        logging.basicConfig(
+            format='[%(levelname)s] %(message)s',
+            level=DEFAULT_LOGGING_LEVEL
+        )
+        logger = logging.getLogger(__name__)
+        logger.setLevel(DEFAULT_LOGGING_LEVEL)
+
+        BOT_DEFINITION_FILENAME = '/tmp/InvoiceBot.zip'
+        BOT_EXPORT_FILENAME = 'bot-definition-export.json'
+
+        s3.Bucket('aws-bigdata-blog').download_file('artifacts/aws-textract-comprehend-lex-chatbot/InvoiceBot.zip', '/tmp/InvoiceBot.zip')
+
+        def create_bot():
+            with open(BOT_DEFINITION_FILENAME, 'rb') as file_data:
+                bytes_content = file_data.read()
+            response = lexclient.start_import(
+            payload=bytes_content,
+            resourceType='BOT',
+            mergeStrategy='OVERWRITE_LATEST')
+            print("Import id is"+response['importId'])
+
+            import_status = lexclient.get_import(
+                importId=response['importId'])
+
+            while import_status['importStatus'] =='IN_PROGRESS':
+                import_status = lexclient.get_import(importId=response['importId'])
+                print("Bot creation is in progress")
+            if import_status['importStatus'] == 'COMPLETE':
+                return "SUCCESS"
+            else:
+                return "FAILURE"
+
+        def delete_bot(bot_name=None):
+            bot_aliases = lexclient.get_bot_aliases(botName=bot_name)['BotAliases']
+            for alias in bot_aliases:
+                print("Deleting Alias"+alias)
+                response = lexclient.delete_bot_alias(name=alias,botName=bot_name)
+            time.sleep(5)
+            response = lexclient.delete_bot(name=bot_name)
+            return "SUCCESS"
+
+        def handler(event, context):
+            """ CloudFormation Custom Resource Lambda Handler
+            """
+            import cfnresponse
+
+            request_type = event.get('RequestType')
+            resource_properties = event.get('ResourceProperties')
+            bot_name= resource_properties.get('BotName')
+            response_status = cfnresponse.SUCCESS
+            response = {}
+            response_id = event.get('RequestId')
+            reason = request_type
+            error = ''
+            should_delete = resource_properties.get('ShouldDelete', True)
+
+
+            if (request_type in ['Create', 'Update']):
+                try:
+                    print("here2")
+                    response['status']=create_bot()
+                    if response['status'] =="SUCCESS":
+                        print("Job succeded\n")
+                        response_status = cfnresponse.SUCCESS
+                    else:
+                        response_status = cfnresponse.FAILED
+                        print("Job Failed\n")
+                except Exception as e:
+                    error = 'failed to {} bot: {}'.format(request_type, e)
+                    pass
+
+            if (request_type == 'Delete' and should_delete != 'false'):
+                try:
+                    response['status']=delete_bot(bot_name)
+                    if response['status'] =="SUCCESS":
+                        print("Job succeded\n")
+                        response_status = cfnresponse.SUCCESS
+                    else:
+                        response_status = cfnresponse.FAILED
+                        print("Delete Failed\n")
+                except Exception as e:
+                    error = 'failed to delete bot: {}'.format(e)
+                    pass
+
+            if error:
+                logger.error(error)
+                response_status = cfnresponse.FAILED
+                reason = error
+
+            if bool(context):
+                cfnresponse.send(
+                    event,
+                    context,
+                    response_status,
+                    response,
+                    response_id,
+                    reason
+                )
       Description: ''
       MemorySize: 512
       Timeout: 30
       Policies:
       - AmazonLexFullAccess
+      - AmazonS3FullAccess
   LexBot:
     Type: Custom::LexBot
     Properties:
@@ -264,6 +372,15 @@ Resources:
         EnableMarkdownSupport: 'true'
         ShouldLoadIframeMinimized: 'false'
         ShowResponseCardTitle: 'true'
+        ConnectContactFlowId: ' '
+        ConnectInstanceId: ' '
+        ConnectPromptForNameMessage: ' '
+        ConnectWaitForAgentMessage: ' '
+        ConnectWaitForAgentMessageIntervalInSeconds: 1
+        ConnectAgentJoinedMessage: ' '
+        ConnectAgentLeftMessage: ' '
+        ConnectChatEndedMessage: ' '
+        ConnectLiveChatTerms: ' '
         CognitoIdentityPoolId:
           Fn::If:
           - NeedsCognito
@@ -301,6 +418,7 @@ Resources:
     Properties:
       TemplateURL: https://s3.amazonaws.com/aws-bigdata-blog/artifacts/aws-lex-web-ui/artifacts/templates/cognitouserpoolconfig.yaml
       Parameters:
+        Timestamp: 1655687000
         WebAppUrl:
           Fn::If:
           - NeedsParentOrigin
